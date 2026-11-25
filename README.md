@@ -50,6 +50,7 @@ node server.js
 ```
 
 The starter server runs at `http://localhost:3000`.
+--- issue is "Cannot GET"
 
 ### Review the Frontend
 
