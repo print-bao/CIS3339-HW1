@@ -1,10 +1,16 @@
 <script setup>
+import DataTable from '../components/DataTable.vue'
+import FeedbackMessage from '../components/FeedbackMessage.vue'
 import { reactive, onMounted } from 'vue'
 import { useCourseStore } from '../stores/courses'
 const store = useCourseStore()
 const form = reactive({
     id: '', name: '', 
 })
+const columns = [
+    { key: 'id', label: 'Course ID'},
+    { key: 'name', label: 'Course Name' }
+]
 onMounted(() => {
     store.fetchCourses()
 })
@@ -36,33 +42,28 @@ async function removeCourse(id){
     </section>
     <section>
         <h2>All Courses</h2>
-        <p v-if="!store.loading && store.courses.length === 0">
-            No courses are available. Please add a course.
-        </p>
-        <table v-if="store.courses.length > 0">
-            <thead>
-                <tr>
-                    <th>Course ID</th>
-                    <th>Course Name</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="course in store.courses" :key="course.id">
-                    <td>{{ course.id }}</td>
-                    <td>{{ course.name }}</td>
-                    <td>
-                        <button type="button" :disabled="store.loading" @click="removeCourse(course.id)">
-                            Delete
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <DataTable
+            v-if="!store.loading || store.courses.length > 0"
+            :columns="columns"
+            :rows="store.courses"
+            emptyMessage="No courses are available at this time. Please add a course."
+        >
+            <template #actions="{ row }">
+                <button
+                    type="button"
+                    :disabled="store.loading"
+                    @click="removeCourse(row.id)"
+                >
+                    Delete
+                </button>
+            </template>
+        </DataTable>
     </section>
-    <p v-if="store.loading">Loading...</p>
-    <p v-if="store.error" class="error">{{  store.error }} </p>
-    <p v-if="store.message" class="success">{{ store.message }}</p>
+    <FeedbackMessage
+        :loading="store.loading"
+        :error="store.error"
+        :message="store.message"
+    />
 </template>
 <style scoped>
 section{
@@ -90,24 +91,5 @@ button{
 button:disabled{
     opacity: 0.5;
     cursor: not-allowed;
-}
-table{
-    border-collapse: collapse;
-    margin-top: 20px;
-    width: 100%
-}
-th, td{
-    padding: 12px;
-    border: 1px solid #ccc;
-    text-align: left;
-}
-th{
-    background: #f2f2f2;
-}
-.error{
-    color: red;
-}
-.success{
-    color: green;
 }
 </style>

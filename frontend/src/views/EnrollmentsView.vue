@@ -1,10 +1,18 @@
 <script setup>
-import { reactive, onMounted } from 'vue'
+import DataTable from '../components/DataTable.vue'
+import FeedbackMessage from '../components/FeedbackMessage.vue'
+import { reactive, onMounted, computed } from 'vue'
 import { useEnrollmentStore } from '../stores/enrollments'
 const store = useEnrollmentStore()
 const form = reactive({
     studentId: '', courseId: ''
 })
+const columns = [
+    { key: 'studentId', label: 'Student ID'},
+    { key: 'studentName', label: 'Student Name'},
+    { key: 'courseId', label: 'Course ID'},
+    { key: 'courseName', label: 'Course Name'}
+]
 onMounted(() => {
     store.fetchData()
 })
@@ -27,6 +35,13 @@ function getStudentName(id){
 function getCourseName(id){
     return store.courses.find(course => course.id === id)?.name || id
 }
+const enrollmentRows = computed(() =>
+    store.enrollments.map(enrollment => ({
+        ...enrollment,
+        studentName: getStudentName(enrollment.studentId),
+        courseName: getCourseName(enrollment.courseId)
+    }))
+)
 </script>
 <template>
     <h1>Enrollment Management</h1>
@@ -69,47 +84,28 @@ function getCourseName(id){
         <p v-if="!store.loading && store.enrollments.length === 0">
             No Enrollments are Available.
         </p>
-        <table v-if="store.enrollments.length > 0">
-            <thead>
-                <tr>
-                    <th>Student ID</th>
-                    <th>Student Name</th>
-                    <th>Course ID</th>
-                    <th>Course Name</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr
-                    v-for="enrollment in store.enrollments"
-                    :key="JSON.stringify([enrollment.studentId, enrollment.courseId])"
+        <DataTable
+            v-if="!store.loading || store.enrollments.length > 0"
+            :columns="columns"
+            :rows="enrollmentRows"
+            emptyMessage="No enrollments are available..."
+        >
+            <template #actions="{ row }">
+                <button
+                    type="button"
+                    :disabled="store.loading"
+                    @click="removeEnrollment(row.studentId, row.courseId)"
                 >
-                    <td>{{  enrollment.studentId }}</td>
-                    <td>
-                        {{ getStudentName(enrollment.studentId) }}
-                    </td>
-                    <td>{{ enrollment.courseId }}</td>
-                    <td>
-                        {{ getCourseName(enrollment.courseId) }}
-                    </td>
-                    <td>
-                        <button
-                            type="button" :disabled="store.loading" @click="removeEnrollment(enrollment.studentId, enrollment.courseId)"
-                        >
-                            Remove
-                        </button>    
-                    </td>
-                </tr>  
-            </tbody>
-        </table>
+                    Delete
+                </button>
+            </template>
+        </DataTable>
     </section>
-    <p v-if="store.loading">Loading...</p>
-    <p v-if="store.error" class="error">
-        {{  store.error }}
-    </p>
-    <p v-if="store.message" class="success">
-        {{ store.message }}
-    </p>
+    <FeedbackMessage
+        :loading="store.loading"
+        :error="store.error"
+        :message="store.message"
+    />
 </template>
 <style scoped>
 section{
@@ -137,24 +133,5 @@ button{
 button:disabled{
     opacity: 0.5;
     cursor: not-allowed;
-}
-table{
-    border-collapse: collapse;
-    margin-top: 20px;
-    width: 100%;
-}
-th, td{
-    padding: 12px;
-    border: 1px solid #ccc;
-    text-align: left;
-}
-th{
-    background: #f2f2f2;
-}
-.error{
-    color: red;
-}
-.success{
-    color: green;
 }
 </style>

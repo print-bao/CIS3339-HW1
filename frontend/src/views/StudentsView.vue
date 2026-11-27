@@ -1,11 +1,19 @@
 <script setup>
+import DataTable from '../components/DataTable.vue'
 import {ref, reactive} from 'vue'
 import {useStudentStore } from '../stores/students'
+import FeedbackMessage from '../components/FeedbackMessage.vue'
 const store = useStudentStore()
 const searchName = ref('')
 const form = reactive({ 
     name: '', id: '', phone: '', zip: ''
 })
+const columns = [
+    { key: 'name', label: 'Name' },
+    { key: 'id', label: 'ID'},
+    { key: 'phone', label: 'Phone'},
+    { key: 'zip', label: 'ZIP'}
+]
 async function searchStudent(){
     await store.findStudent(searchName.value.trim())
 }
@@ -39,36 +47,22 @@ async function removeStudent(){
                     Search
                 </button>
             </form>
-
-            <table v-if="store.student">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>ID</th>
-                        <th>Phone</th>
-                        <th>ZIP</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{{ store.student.name }}</td>
-                        <td>{{ store.student.id }}</td>
-                        <td>{{ store.student.phone }}</td>
-                        <td>{{ store.student.zip }}</td>
-                        <td>
-                            <button 
-                                type="button"
-                                class = "delete"
-                                :disabled="store.loading"
-                                @click="removeStudent"
-                            >
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <DataTable 
+                v-if="store.student"
+                :columns="columns"
+                :rows="[store.student]"
+            >
+                <template #actions>
+                    <button
+                        type="button"
+                        class="delete"
+                        :disabled="store.loading"
+                        @click="removeStudent"
+                    >
+                        Delete
+                    </button>
+                </template>
+            </DataTable>
         </section>
         <section>
             <h2>Add a Student</h2>
@@ -87,9 +81,11 @@ async function removeStudent(){
             </form>
         </section>
 
-        <p v-if="store.loading">Loading...</p>
-        <p v-if="store.error" class="error">{{ store.error }}</p>
-        <p v-if="store.message" class="success">{{store.message}}</p>
+        <FeedbackMessage
+            :loading="store.loading"
+            :error="store.error"
+            :message="store.message"
+        />
     </template>
     <style scoped>
     section{
@@ -117,24 +113,5 @@ async function removeStudent(){
     button:disabled{
         opacity: 0.5;
         cursor: not-allowed;
-    }
-    table{
-        border-collapse: collapse;
-        margin-top: 20px;
-        width: 100%;
-    }
-    th, td{
-        padding: 12px;
-        border: 1px solid #ccc;
-        text-align: left;
-    }
-    th{
-        background: #f2f2f2;
-    }
-    .error{
-        color: red;
-    }
-    .success{
-        color: green;
     }
     </style>

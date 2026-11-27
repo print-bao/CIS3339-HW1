@@ -12,17 +12,8 @@ const Enrollment = require('./models/Enrollment');
 const app = express();
 app.use(cors());
 app.use(express.json());
-//debug
-app.get('/debug', (req, res) => {
-    res.json({
-        version: 'MongoDB Backend',
-        file: __filename,
-        pid: process.pid
-    });
-});
-
 // Endpoint to search for a student by name
-app.post('/find-student', async (req, res) => {
+app.post('/api/find-student', async (req, res) => {
     try{
         const { name } = req.body;
         if (!name){
@@ -46,7 +37,7 @@ app.post('/find-student', async (req, res) => {
 });
 
 // Endpoint to save a student
-app.post('/add-student', async (req, res) => {
+app.post('/api/add-student', async (req, res) => {
     try{
         const { name, id, phone, zip } = req.body;
         if (!name || !id || !phone || !zip){
@@ -81,7 +72,7 @@ app.post('/add-student', async (req, res) => {
 });
 
 // Endpoint to delete a student by name
-app.post('/delete-student', async (req, res) => {
+app.post('/api/delete-student', async (req, res) => {
     try {
         const { name } = req.body;
         if (!name){
@@ -112,7 +103,7 @@ app.post('/delete-student', async (req, res) => {
     }
 });
 //Endpoint to retrieve all students
-app.get('/students', async (req, res) => {
+app.get('/api/students', async (req, res) => {
     try{
         const students = await Student.find();
         res.json(students);
@@ -124,7 +115,7 @@ app.get('/students', async (req, res) => {
 });
 
 //Endpoint to retrieve all courses
-app.get('/courses', async (req, res) => {
+app.get('/api/courses', async (req, res) => {
     try{
         const courses = await Course.find();
         res.json(courses);
@@ -135,7 +126,7 @@ app.get('/courses', async (req, res) => {
     }
 });
 //Endpoint to add a course
-app.post('/courses', async (req, res) => {
+app.post('/api/courses', async (req, res) => {
     try{
         const { id, name } = req.body;
         if (!id?.trim() || !name?.trim()){
@@ -155,6 +146,10 @@ app.post('/courses', async (req, res) => {
             id: id.trim(),
             name: name.trim()
         });
+        res.status(201).json({
+            message: 'Course Added Successfully!',
+            course: newCourse
+        });
     } catch (error){
         console.error('Error Adding Course:', error);
         if (error.code === 11000){
@@ -168,7 +163,7 @@ app.post('/courses', async (req, res) => {
     }
 });
 //Endpoint to delete a course
-app.delete('/courses/:id', async (req, res) => {
+app.delete('/api/courses/:id', async (req, res) => {
     try {
         const deletedCourse = await Course.findOneAndDelete({
             id: req.params.id
@@ -178,6 +173,9 @@ app.delete('/courses/:id', async (req, res) => {
                 error: 'Course Not Found.'
             });
         }
+        await Enrollment.deleteMany({
+            courseId: deletedCourse.id
+        });
         res.json({
             message: 'Course Deleted Successfully!'
         });
@@ -189,7 +187,7 @@ app.delete('/courses/:id', async (req, res) => {
     }
 });
 // Enrollment Storage
-app.get('/enrollments', async (req, res) => {
+app.get('/api/enrollments', async (req, res) => {
     try {
         const enrollments = await Enrollment.find();
         res.json(enrollments);
@@ -199,12 +197,8 @@ app.get('/enrollments', async (req, res) => {
         });
     }
 });
-// Endpoint to retrieve all enrollments
-app.get('/enrollments', (req, res) => {
-    res.json(readEnrollments());
-});
 // Endpoint to enroll a student into a course
-app.post('/enrollments', async (req, res) => {
+app.post('/api/enrollments', async (req, res) => {
     try{
         const { studentId, courseId } = req.body;
         if (!studentId || !courseId){
@@ -256,7 +250,7 @@ app.post('/enrollments', async (req, res) => {
     }
 });
 // Endpoint to remove an enrollment
-app.delete('/enrollments/:studentId/:courseId', async (req, res) => {
+app.delete('/api/enrollments/:studentId/:courseId', async (req, res) => {
     try{
         const { studentId, courseId } = req.params;
         const deletedEnrollment = await Enrollment.findOneAndDelete({
@@ -276,6 +270,19 @@ app.delete('/enrollments/:studentId/:courseId', async (req, res) => {
             error: 'Internal Server Error.'
         });
     }
+});
+// Return JSON for unknown API routes
+app.use('/api', (req, res) => {
+    res.status(404).json({
+        error: 'API endpoint not found.'
+    });
+});
+// Serve the Vue production build
+const frontendPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendPath));
+// Support Vue Router navigation
+app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 // Start the server
 const PORT = process.env.PORT || 3001;
